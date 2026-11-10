@@ -9,6 +9,7 @@
         <meta name="theme-color" content="#5a321c">
           <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
     </head>
     <body class="locked">
@@ -356,6 +357,104 @@
 </section>
 
 
+
+            <section class="reveal-section wishes-section" id="wishes" aria-labelledby="wishesTitle">
+                <div class="wish-hearts" aria-hidden="true">
+                    <span style="--l:6%;--s:14px;--t:13s;--dl:0s;--dx:24px">♥</span>
+                    <span style="--l:18%;--s:20px;--t:16s;--dl:-5s;--dx:-18px">♥</span>
+                    <span style="--l:33%;--s:12px;--t:12s;--dl:-9s;--dx:22px">♥</span>
+                    <span style="--l:48%;--s:18px;--t:17s;--dl:-2s;--dx:-26px">♥</span>
+                    <span style="--l:62%;--s:13px;--t:14s;--dl:-7s;--dx:18px">♥</span>
+                    <span style="--l:76%;--s:22px;--t:18s;--dl:-11s;--dx:-20px">♥</span>
+                    <span style="--l:89%;--s:15px;--t:13s;--dl:-4s;--dx:16px">♥</span>
+                </div>
+
+                <p class="eyebrow">BLESSINGS FROM YOUR HEART</p>
+                <h2 class="section-title" id="wishesTitle">Send Your Wishes</h2>
+                <div class="wish-orn" aria-hidden="true"><span>♥</span></div>
+                <p class="wishes-sub">Leave a few words for Ramesh &amp; Tamil Selvi. Every wish is delivered straight to them.</p>
+
+                <div class="wish-card" id="wishCard">
+                    <span class="wax-seal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z"/></svg></span>
+                    <i class="corner tl" aria-hidden="true">✦</i><i class="corner tr" aria-hidden="true">✦</i>
+                    <i class="corner bl" aria-hidden="true">✦</i><i class="corner br" aria-hidden="true">✦</i>
+
+                    <svg class="envelope" viewBox="0 0 120 84" aria-hidden="true">
+                        <rect x="2" y="2" width="116" height="80" rx="8" fill="#fffaf0" stroke="currentColor" stroke-width="2"/>
+                        <path d="M4 6 L60 48 L116 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <circle cx="60" cy="48" r="11" fill="currentColor"/>
+                        <path d="M60 54 c-6-4-8-7-8-10 a4 4 0 0 1 8-1 a4 4 0 0 1 8 1 c0 3-2 6-8 10z" fill="#fff"/>
+                    </svg>
+
+                    <form id="wishForm" class="wish-form" novalidate>
+                        <div class="w-field">
+                            <label for="wishName">Your name</label>
+                            <input id="wishName" name="name" type="text" maxlength="40" autocomplete="name" placeholder="Karthik &amp; family" required>
+                        </div>
+                        <div class="w-field">
+                            <label for="wishRelation">You are our</label>
+                            <select id="wishRelation" name="relation">
+                                <option value="">Choose (optional)</option>
+                                <option>Family</option>
+                                <option>Relative</option>
+                                <option>Friend</option>
+                                <option>Colleague</option>
+                                <option>Neighbour</option>
+                            </select>
+                        </div>
+                        <div class="w-field">
+                            <label for="wishMessage">Your message</label>
+                            <textarea id="wishMessage" name="message" rows="4" maxlength="300" placeholder="Write your blessing here" required></textarea>
+                            <div class="w-foot">
+                                <span id="wishError" class="w-error" role="alert"></span>
+                                <span id="wishCount" class="w-count">0 / 300</span>
+                            </div>
+                        </div>
+
+                        <p class="w-label">Tap to add a blessing</p>
+                        <div class="w-chips">
+                            <button type="button" class="w-chip" data-text="Congratulations!">Congratulations!</button>
+                            <button type="button" class="w-chip" data-text="Happy married life.">Happy married life</button>
+                            <button type="button" class="w-chip" data-text="God bless you both.">God bless you both</button>
+                            <button type="button" class="w-chip" data-text="Wishing you a lifetime of love.">A lifetime of love</button>
+                            <button type="button" class="w-chip" lang="ta" data-text="திருமண வாழ்த்துக்கள்!">திருமண வாழ்த்துக்கள்</button>
+                            <button type="button" class="w-chip" lang="ta" data-text="வாழ்க வளமுடன்!">வாழ்க வளமுடன்</button>
+                        </div>
+
+                        <fieldset class="w-stickers">
+                            <legend class="w-label">Pick a sticker for your card</legend>
+                            <label><input type="radio" name="sticker" value="🌸" checked><span>🌸</span></label>
+                            <label><input type="radio" name="sticker" value="💐"><span>💐</span></label>
+                            <label><input type="radio" name="sticker" value="✨"><span>✨</span></label>
+                            <label><input type="radio" name="sticker" value="❤️"><span>❤️</span></label>
+                            <label><input type="radio" name="sticker" value="🙏"><span>🙏</span></label>
+                            <label><input type="radio" name="sticker" value="🎊"><span>🎊</span></label>
+                            <label><input type="radio" name="sticker" value="🪔"><span>🪔</span></label>
+                        </fieldset>
+
+                        <input type="text" name="website" class="w-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+                        <button class="w-send" id="wishSend" type="submit"><span id="wishSendLabel">Send Wishes</span></button>
+                    </form>
+
+                    <div class="wish-thanks" id="wishThanks" hidden>
+                        <svg class="thanks-heart" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z"/></svg>
+                        <span class="thanks-sticker" id="thanksSticker" aria-hidden="true">🌸</span>
+                        <p class="thanks-title" id="thanksTitle">Thank you</p>
+                        <p class="thanks-copy">Your blessing has been delivered to the couple.</p>
+                        <div class="thanks-actions">
+                            <button type="button" class="w-ghost" id="seeWish">See it below</button>
+                            <button type="button" class="w-ghost" id="writeAnother">Write another</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wish-wall-head" id="wishWallHead">
+                    <h3>Blessings sent</h3>
+                    <span class="wish-total" id="wishTotal"></span>
+                </div>
+                <div class="wish-wall" id="wishWall" aria-live="polite"></div>
+                <button type="button" class="w-ghost wish-more" id="wishMore" hidden>Show more blessings</button>
+            </section>
 
             <footer class="reveal-section footer">
                 <div class="footer-names">
