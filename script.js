@@ -471,3 +471,326 @@ document
     video =>
       videoObserver.observe(video)
   );
+
+/* =========================================================
+   WISHES: FormSubmit.co (AJAX)
+   1) Set WISHES_EMAIL below to the inbox that should receive wishes.
+   2) Send one test wish. FormSubmit emails an activation link once;
+      click it and the form is live.
+========================================================= */
+(() => {
+  const WISHES_EMAIL = 'dineshkumarpdk33@gmail.com';
+  const WISHES_CC_EMAIL = '';          // optional second inbox
+  const WISH_STORE = 'wedding_wishes_v1';
+  const WISH_LAST = 'wedding_wish_last';
+  const WISH_COOLDOWN = 8000;
+  const WISH_PAGE = 6;
+  const STICKERS = ['🌸', '💐', '✨', '❤️', '🙏', '🎊', '🪔'];
+
+  const $ = id => document.getElementById(id);
+  const wishCard = $('wishCard'), wishForm = $('wishForm'), wishName = $('wishName'),
+    wishRelation = $('wishRelation'), wishMessage = $('wishMessage'), wishCount = $('wishCount'),
+    wishError = $('wishError'), wishSend = $('wishSend'), wishSendLabel = $('wishSendLabel'),
+    wishThanks = $('wishThanks'), thanksTitle = $('thanksTitle'), thanksSticker = $('thanksSticker'),
+    seeWish = $('seeWish'), writeAnother = $('writeAnother'), wishWall = $('wishWall'),
+    wishWallHead = $('wishWallHead'), wishTotal = $('wishTotal'), wishMore = $('wishMore');
+
+  if (!wishForm || !wishWall) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  // Overlays live on <body> so section transforms can't offset them
+  const wishBurst = document.createElement('div');
+  wishBurst.className = 'wish-burst';
+  wishBurst.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(wishBurst);
+
+  const toastEl = document.createElement('div');
+  toastEl.className = 'w-toast';
+  toastEl.setAttribute('role', 'status');
+  document.body.appendChild(toastEl);
+  let toastTimer;
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  let wishes = [];
+  let shown = WISH_PAGE;
+
+  /* ---------- helpers ---------- */
+  const cleanText = (v, max) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, max);
+  const makeId = () => (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  function readLocal() {
+    try {
+      const list = JSON.parse(localStorage.getItem(WISH_STORE) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+  function saveLocal(wish) {
+    try { localStorage.setItem(WISH_STORE, JSON.stringify([wish, ...readLocal()].slice(0, 50))); } catch (e) {}
+  }
+  function normalize(raw) {
+    if (!raw) return null;
+    const name = cleanText(raw.name, 40), message = cleanText(raw.message, 300);
+    if (!name || !message) return null;
+    return {
+      id: String(raw.id || makeId()).slice(0, 64), name,
+      relation: cleanText(raw.relation, 20),
+      sticker: STICKERS.includes(raw.sticker) ? raw.sticker : '🌸',
+      message, ts: Number(raw.ts) || 0
+    };
+  }
+
+  /* ---------- wall ---------- */
+  const noteObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('in'); noteObserver.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15 });
+
+  function buildNote(wish, index, stagger, fresh) {
+    const variant = [...wish.id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 4;
+    const note = document.createElement('article');
+    note.className = `wish-note v${variant}` + (fresh ? ' fresh' : '');
+    note.style.setProperty('--tilt', index % 3 === 2 ? '0deg' : (index % 2 ? '.6deg' : '-.6deg'));
+    note.style.setProperty('--d', `${stagger * 0.08}s`);
+
+    const sticker = document.createElement('span');
+    sticker.className = 'wish-sticker';
+    sticker.setAttribute('aria-hidden', 'true');
+    sticker.textContent = wish.sticker;
+
+    const head = document.createElement('div');
+    head.className = 'wish-head';
+    const avatar = document.createElement('span');
+    avatar.className = 'wish-avatar';
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = ([...wish.name][0] || '♥').toUpperCase();
+    const who = document.createElement('div');
+    who.className = 'wish-who';
+    const name = document.createElement('span');
+    name.className = 'wish-name';
+    name.textContent = wish.name;
+    who.appendChild(name);
+    if (wish.relation) {
+      const tag = document.createElement('span');
+      tag.className = 'wish-tag';
+      tag.textContent = wish.relation;
+      who.appendChild(tag);
+    }
+    head.append(avatar, who);
+
+    const text = document.createElement('p');
+    text.textContent = wish.message;
+    note.append(sticker, head, text);
+    noteObserver.observe(note);
+    return note;
+  }
+
+  function updateWallMeta() {
+    const total = wishes.length;
+    wishTotal.textContent = total ? `${total} ${total === 1 ? 'wish' : 'wishes'}` : '';
+    wishMore.hidden = shown >= total;
+  }
+
+  function renderWall() {
+    wishWall.textContent = '';
+    if (!wishes.length) {
+      const empty = document.createElement('p');
+      empty.className = 'wish-empty';
+      empty.textContent = 'Thank you for all the lovely wishes! ❤️';
+      wishWall.appendChild(empty);
+    } else {
+      wishes.slice(0, shown).forEach((w, i) => wishWall.appendChild(buildNote(w, i, i % WISH_PAGE)));
+    }
+    updateWallMeta();
+  }
+
+  wishMore.addEventListener('click', () => {
+    const from = shown;
+    shown += WISH_PAGE;
+    wishes.slice(from, shown).forEach((w, i) => wishWall.appendChild(buildNote(w, from + i, i)));
+    updateWallMeta();
+  });
+
+  function addFreshWish(wish) {
+    wishes.unshift(wish);
+    shown += 1;
+    const empty = wishWall.querySelector('.wish-empty');
+    if (empty) empty.remove();
+    wishWall.prepend(buildNote(wish, 0, 0, true));
+    updateWallMeta();
+  }
+
+  /* ---------- form behaviour ---------- */
+  const updateCount = () => { wishCount.textContent = `${wishMessage.value.length} / 300`; };
+
+  function clearError() {
+    wishError.textContent = '';
+    wishForm.querySelectorAll('.w-field.invalid').forEach(f => f.classList.remove('invalid'));
+  }
+  function fail(input, message) {
+    const field = input.closest('.w-field');
+    wishError.textContent = message;
+    field.classList.add('invalid');
+    field.classList.remove('w-shake');
+    void field.offsetWidth;
+    field.classList.add('w-shake');
+    input.focus();
+  }
+
+  wishMessage.addEventListener('input', () => { updateCount(); clearError(); });
+  wishName.addEventListener('input', clearError);
+
+  document.querySelectorAll('.w-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const current = wishMessage.value.trim();
+      const next = current ? `${current} ${chip.dataset.text}` : chip.dataset.text;
+      if (next.length > 300) { showToast('Message is full'); return; }
+      wishMessage.value = next;
+      updateCount();
+      clearError();
+      chip.classList.remove('added');
+      void chip.offsetWidth;
+      chip.classList.add('added');
+    });
+  });
+
+  function sparkBurst(cx, cy, count) {
+    if (reduceMotion) return;
+    const glyphs = ['♥', '✦', '✿', '✧', '🌸', '✨', '♥'];
+    const pieces = [];
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('span');
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 90 + Math.random() * 190;
+      piece.className = 'burst-piece';
+      piece.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+      piece.style.left = `${cx}px`;
+      piece.style.top = `${cy}px`;
+      piece.style.setProperty('--x', `${Math.cos(angle) * dist}px`);
+      piece.style.setProperty('--y', `${Math.sin(angle) * dist + 50}px`);
+      piece.style.setProperty('--r', `${Math.random() * 540 - 270}deg`);
+      piece.style.setProperty('--d', `${1.4 + Math.random() * 1.2}s`);
+      piece.style.setProperty('--delay', `${Math.random() * 0.15}s`);
+      wishBurst.appendChild(piece);
+      pieces.push(piece);
+    }
+    setTimeout(() => pieces.forEach(p => p.remove()), 3200);
+  }
+
+  // Sends the wish to your inbox through FormSubmit.co
+  async function postWish(wish) {
+    try {
+      const payload = {
+        _subject: `New wedding wish from ${wish.name}`,
+        _template: 'table',
+        _captcha: 'false',
+        Name: wish.name,
+        Relation: wish.relation || '-',
+        Sticker: wish.sticker,
+        Wish: wish.message
+      };
+      if (WISHES_CC_EMAIL) payload._cc = WISHES_CC_EMAIL;
+
+      const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(WISHES_EMAIL)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false || data.success === 'false') {
+        throw new Error(data.message || 'FormSubmit rejected the submission');
+      }
+      saveLocal(wish);
+      return true;
+    } catch (err) {
+      console.warn('Wish not sent:', err);
+      return false;
+    }
+  }
+
+  wishForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (wishForm.elements.website.value) return; // honeypot
+
+    clearError();
+    const name = cleanText(wishName.value, 40);
+    const message = cleanText(wishMessage.value, 300);
+    const relation = cleanText(wishRelation.value, 20);
+    const picked = wishForm.elements.sticker.value;
+    const sticker = STICKERS.includes(picked) ? picked : '🌸';
+
+    if (!name) { fail(wishName, 'Please add your name.'); return; }
+    if (message.length < 3) { fail(wishMessage, 'Write a few words for the couple.'); return; }
+
+    let last = 0;
+    try { last = Number(localStorage.getItem(WISH_LAST)) || 0; } catch (err) {}
+    if (Date.now() - last < WISH_COOLDOWN) {
+      fail(wishMessage, 'Please wait a few seconds before sending another wish.');
+      return;
+    }
+
+    const wish = { id: makeId(), name, relation, sticker, message, ts: Date.now() };
+
+    wishSend.disabled = true;
+    wishSendLabel.textContent = 'Sending…';
+    wishCard.style.minHeight = `${wishCard.offsetHeight}px`;
+    wishCard.classList.add('sealing');
+
+    const sending = postWish(wish);
+    await wait(1000);
+
+    const rect = wishCard.getBoundingClientRect();
+    sparkBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 46);
+
+    const ok = await sending;
+    await wait(600);
+    wishCard.classList.remove('sealing');
+
+    if (!ok) {
+      wishCard.style.minHeight = '';
+      wishSend.disabled = false;
+      wishSendLabel.textContent = 'Send Wishes';
+      fail(wishMessage, 'Could not send right now. Please check your connection and try again.');
+      return;
+    }
+
+    try { localStorage.setItem(WISH_LAST, String(Date.now())); } catch (err) {}
+
+    thanksTitle.textContent = `Thank you, ${name}`;
+    thanksSticker.textContent = sticker;
+    wishForm.hidden = true;
+    wishThanks.hidden = false;
+    wishCard.classList.add('done');
+    addFreshWish(wish);
+  });
+
+  writeAnother.addEventListener('click', () => {
+    wishMessage.value = '';
+    wishRelation.value = '';
+    updateCount();
+    wishThanks.hidden = true;
+    wishForm.hidden = false;
+    wishCard.classList.remove('done');
+    wishCard.style.minHeight = '';
+    wishSend.disabled = false;
+    wishSendLabel.textContent = 'Send Wishes';
+    wishMessage.focus({ preventScroll: true });
+  });
+
+  seeWish.addEventListener('click', () => {
+    wishWallHead.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  });
+
+  wishes = readLocal().map(normalize).filter(Boolean).sort((a, b) => b.ts - a.ts);
+  updateCount();
+  renderWall();
+})();
